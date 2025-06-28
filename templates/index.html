@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Morse Code Translator</title>
+</head>
+<body>
+    <h1>Morse Code Translator</h1>
+
+    <label for="inputText">Text to translate:</label><br />
+    <input type="text" id="inputText" name="inputText" required /><br /><br />
+    
+    <label for="morseText">Morse code to translate:</label><br />
+    <input type="text" id="morseText" name="morseText" required /><br /><br />
+
+    <h2>Result:</h2>
+    <pre id="output"></pre>
+
+    <pre id="morseOutput"></pre>
+
+    <label for="speedSlider">Speed:</label>
+    <input type="range" id="speedSlider" name="speedSlider" min="0" max="1" value=".10" step="0.01"/>
+    <span id="speedValue">.10</span>
+
+
+    <label for="freqSlider">Frequency:</label>
+    <input type="range" id="freqSlider" name="freqSlider" min="0" max="2000" value="1000" step="100"/>
+    <span id="freqValue">1000</span>
+
+    <label for="volumeSlider">Volume:</label>
+    <input type="range" id="volumeSlider" name="volumeSlider" min="0" max="1" value="0.5" step="0.01"/>
+    <span id="volumeVal">0.5</span>
+    <br />
+
+    <script>
+        let debounceTimeout;
+        let currentTranslation = ""; // global output variable
+
+        document.getElementById("inputText").addEventListener("input", () => {
+            clearTimeout(debounceTimeout);
+            debounceTimeout = setTimeout(triggerTranslate, 100);  // wait 100ms after user stops typing
+        });
+
+        document.getElementById("morseText").addEventListener("input", () => {
+            clearTimeout(debounceTimeout);
+            debounceTimeout = setTimeout(triggerMorseTranslate, 100);  // wait 100ms after user stops typing
+        });
+
+        // updates the value of the volume slider
+        const volumeSlider = document.getElementById("volumeSlider");
+        const volumeVal = document.getElementById("volumeVal");
+
+        volumeSlider.addEventListener("input", () => {
+            volumeVal.textContent = parseFloat(volumeSlider.value).toFixed(2);
+        });
+
+
+        // Speed slider
+        const slider = document.getElementById('speedSlider');
+        const output = document.getElementById('speedValue');
+
+
+        slider.addEventListener('input', function(){
+            const value = parseFloat(slider.value).toFixed(2);
+            output.textContent = value;
+
+            fetch(`/set_speed?speed=${value}`)
+                .then(response => {
+                    if(!response.ok){
+                        console.error("Failed to update speed");
+                    }
+                })
+                .catch(error =>{
+                    console.error("Error:", error);
+                });
+        });
+        
+        // frequency slider
+        const frequency = document.getElementById('freqSlider');
+        const freqOutput = document.getElementById('freqValue');
+
+        frequency.addEventListener('input', function(){
+            const value = frequency.value;
+            freqOutput.textContent = value;
+
+            fetch(`/set_freq?freq=${value}`)
+            .then(response =>{
+                if(!response.ok){
+                    console.error("Failed to update frequency");
+                }
+            })
+            .catch(error =>{
+                console.error("Error:", error);
+            });
+        });
+        
+        async function triggerTranslate() {
+            const inputText = document.getElementById("inputText").value;
+            if (!inputText) {
+                document.getElementById("output").textContent = "";
+                return;
+            }
+            const url = `/translate?text=${encodeURIComponent(inputText)}`;
+    
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                document.getElementById("output").textContent = data.morse;
+                currentTranslation = data.morse;
+            } catch (error) {
+                console.error("Error:", error);
+                document.getElementById("output").textContent = "Error contacting backend.";
+            }
+        }
+        async function triggerMorseTranslate(){
+            const morseText = document.getElementById("morseText").value;
+            if (!morseText) {
+                document.getElementById("morseOutput").textContent = "";
+                return;
+            }
+            const url = `/morse_translate?text=${encodeURIComponent(morseText)}`;
+    
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                document.getElementById("morseOutput").textContent = data.morseTranslate;
+            } catch (error) {
+                console.error("Error:", error);
+                document.getElementById("morseOutput").textContent = "Error contacting backend.";
+            }
+        }
+
+        async function triggerListen() {
+            const url = `http://localhost:8000/listen?text=${encodeURIComponent(currentTranslation)}`;
+            try {
+                const response = await fetch(url);
+                if(!response.ok){
+                    throw new Error(`Http error! status: ${response.status}`);
+                }
+                const data = await response.blob();
+                const audioUrl = URL.createObjectURL(data);
+                const audio  = new Audio(audioUrl);
+                audio.volume = parseFloat(document.getElementById("volumeSlider").value);
+                audio.play().catch(err => console.error("Audio play failed:", err));
+            }catch{
+                console.error('Error playing audio:', error);
+            }
+        }
+        
+    </script>
+    
+    <button type="button" onclick="triggerListen()">Listen</button>
+
+</body>
+</html>
