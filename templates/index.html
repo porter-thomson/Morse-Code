@@ -3,159 +3,352 @@
 <head>
     <meta charset="UTF-8" />
     <title>Morse Code Translator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 40px auto 100px; /* add bottom margin for fixed footer */
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .footer-controls {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: #ffffff;
+            border-top: 1px solid #ccc;
+            box-shadow: 0 -2px 4px rgba(0,0,0,0.05);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            z-index: 10;
+        }
+
+        .footer-controls label {
+            font-weight: bold;
+            margin-right: 5px;
+        }
+
+        .footer-controls span {
+            display: inline-block;
+            width: 40px;
+            text-align: right;
+        }
+
+        .footer-controls input[type="range"] {
+            width: 120px;
+            vertical-align: middle;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #ccc;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+            margin-right: 5px;
+            background-color: #e9ecef;
+            transition: background-color 0.3s;
+        }
+
+        .tab:hover {
+            background-color: #dee2e6;
+        }
+
+        .tab.active {
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-bottom: none;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        pre {
+            background: #f1f3f5;
+            padding: 10px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+        }
+
+        button {
+            margin-top: 10px;
+            padding: 10px 16px;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            font-size: 1em;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
 </head>
 <body>
-    <h1>Morse Code Translator</h1>
+    <div class="container">
+        <div class="tabs">
+            <div class="tab active" onclick="showTab(0)">Text to Morse</div>
+            <div class="tab" onclick="showTab(1)">Morse to Text</div>
+            <div class="tab" onclick="showTab(2)">Speech to Morse</div>
+        </div>
 
-    <label for="inputText">Text to translate:</label><br />
-    <input type="text" id="inputText" name="inputText" required /><br /><br />
-    
-    <label for="morseText">Morse code to translate:</label><br />
-    <input type="text" id="morseText" name="morseText" required /><br /><br />
+        <div class="tab-content active" id="tab0">
+            <label for="inputText">Text to translate:</label>
+            <input type="text" id="inputText" name="inputText" required />
+            <h2>Result:</h2>
+            <pre id="output"></pre>
+            <button type="button" onclick="triggerListen()">Listen</button>
+        </div>
 
-    <h2>Result:</h2>
-    <pre id="output"></pre>
+        <div class="tab-content" id="tab1">
+            <label for="morseText">Morse code to translate:</label>
+            <input type="text" id="morseText" name="morseText" required />
+            <h2>Result:</h2>
+            <pre id="morseOutput"></pre>
+        </div>
 
-    <pre id="morseOutput"></pre>
+        <div class="tab-content" id="tab2">
+            <h3>Record:</h3>
+            <button id="startBtn">Start Recording</button>
+            <button id="stopBtn" disabled>Stop Recording</button>
+            <audio id="playback" controls></audio>
 
-    <label for="speedSlider">Speed:</label>
-    <input type="range" id="speedSlider" name="speedSlider" min="0" max="1" value=".10" step="0.01"/>
-    <span id="speedValue">.10</span>
+            <h4>Captions</h4>
+            <pre id="caption"></pre>
+            <h4>Results:</h4>
+            <pre id="transcribedOutput"></pre>
+            <button type="button" onclick="triggerListen()">Listen</button>
+        </div>
+    </div>
 
-
-    <label for="freqSlider">Frequency:</label>
-    <input type="range" id="freqSlider" name="freqSlider" min="0" max="2000" value="1000" step="100"/>
-    <span id="freqValue">1000</span>
-
-    <label for="volumeSlider">Volume:</label>
-    <input type="range" id="volumeSlider" name="volumeSlider" min="0" max="1" value="0.5" step="0.01"/>
-    <span id="volumeVal">0.5</span>
-    <br />
+    <!-- Sliders fixed at bottom footer -->
+    <div class="footer-controls">
+        <div>
+            <label for="speedSlider">Speed:</label>
+            <input type="range" id="speedSlider" name="speedSlider" min="0" max="1" value="0.10" step="0.01" />
+            <span id="speedValue">0.10</span>
+        </div>
+        <div>
+            <label for="freqSlider">Frequency:</label>
+            <input type="range" id="freqSlider" name="freqSlider" min="0" max="2000" value="1000" step="100" />
+            <span id="freqValue">1000</span>
+        </div>
+        <div>
+            <label for="volumeSlider">Volume:</label>
+            <input type="range" id="volumeSlider" name="volumeSlider" min="0" max="1" value="0.5" step="0.01" />
+            <span id="volumeVal">0.5</span>
+        </div>
+    </div>
 
     <script>
-        let debounceTimeout;
-        let currentTranslation = ""; // global output variable
+        // Tab switching logic
+        function showTab(index) {
+            const tabs = document.querySelectorAll('.tab');
+            const contents = document.querySelectorAll('.tab-content');
+            tabs.forEach((tab, i) => {
+                tab.classList.toggle('active', i === index);
+                contents[i].classList.toggle('active', i === index);
+            });
+        }
 
+        let debounceTimeout;
+        let currentTranslation = "";
+        let audioTranslation = "";
+        let mediaRecorder;
+        let audioChunks = [];
+
+        // Text to Morse auto-translate debounce
         document.getElementById("inputText").addEventListener("input", () => {
             clearTimeout(debounceTimeout);
-            debounceTimeout = setTimeout(triggerTranslate, 100);  // wait 100ms after user stops typing
+            debounceTimeout = setTimeout(triggerTranslate, 100);
         });
 
+        // Morse to Text auto-translate debounce
         document.getElementById("morseText").addEventListener("input", () => {
             clearTimeout(debounceTimeout);
-            debounceTimeout = setTimeout(triggerMorseTranslate, 100);  // wait 100ms after user stops typing
+            debounceTimeout = setTimeout(triggerMorseTranslate, 100);
         });
 
-        // updates the value of the volume slider
+        // Volume slider update display
         const volumeSlider = document.getElementById("volumeSlider");
         const volumeVal = document.getElementById("volumeVal");
-
         volumeSlider.addEventListener("input", () => {
             volumeVal.textContent = parseFloat(volumeSlider.value).toFixed(2);
         });
 
-
-        // Speed slider
-        const slider = document.getElementById('speedSlider');
-        const output = document.getElementById('speedValue');
-
-
-        slider.addEventListener('input', function(){
-            const value = parseFloat(slider.value).toFixed(2);
-            output.textContent = value;
-
-            fetch(`/set_speed?speed=${value}`)
-                .then(response => {
-                    if(!response.ok){
-                        console.error("Failed to update speed");
-                    }
-                })
-                .catch(error =>{
-                    console.error("Error:", error);
-                });
+        // Speed slider updates backend
+        const speedSlider = document.getElementById('speedSlider');
+        const speedValue = document.getElementById('speedValue');
+        speedSlider.addEventListener('input', () => {
+            const val = parseFloat(speedSlider.value).toFixed(2);
+            speedValue.textContent = val;
+            fetch(`/set_speed?speed=${val}`).catch(console.error);
         });
-        
-        // frequency slider
-        const frequency = document.getElementById('freqSlider');
-        const freqOutput = document.getElementById('freqValue');
 
-        frequency.addEventListener('input', function(){
-            const value = frequency.value;
-            freqOutput.textContent = value;
-
-            fetch(`/set_freq?freq=${value}`)
-            .then(response =>{
-                if(!response.ok){
-                    console.error("Failed to update frequency");
-                }
-            })
-            .catch(error =>{
-                console.error("Error:", error);
-            });
+        // Frequency slider updates backend
+        const freqSlider = document.getElementById('freqSlider');
+        const freqValue = document.getElementById('freqValue');
+        freqSlider.addEventListener('input', () => {
+            const val = freqSlider.value;
+            freqValue.textContent = val;
+            fetch(`/set_freq?freq=${val}`).catch(console.error);
         });
-        
+
+        // Translate text to morse via backend
         async function triggerTranslate() {
             const inputText = document.getElementById("inputText").value;
             if (!inputText) {
                 document.getElementById("output").textContent = "";
                 return;
             }
-            const url = `/translate?text=${encodeURIComponent(inputText)}`;
-    
             try {
-                const response = await fetch(url);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
+                const response = await fetch(`/translate?text=${encodeURIComponent(inputText)}`);
+                if (!response.ok) throw new Error("Failed to translate");
                 const data = await response.json();
                 document.getElementById("output").textContent = data.morse;
                 currentTranslation = data.morse;
-            } catch (error) {
-                console.error("Error:", error);
+            } catch (err) {
+                console.error(err);
                 document.getElementById("output").textContent = "Error contacting backend.";
             }
         }
-        async function triggerMorseTranslate(){
+
+        // Translate morse to text via backend
+        async function triggerMorseTranslate() {
             const morseText = document.getElementById("morseText").value;
             if (!morseText) {
                 document.getElementById("morseOutput").textContent = "";
                 return;
             }
-            const url = `/morse_translate?text=${encodeURIComponent(morseText)}`;
-    
             try {
-                const response = await fetch(url);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
+                const response = await fetch(`/morse_translate?text=${encodeURIComponent(morseText)}`);
+                if (!response.ok) throw new Error("Failed to translate morse");
                 const data = await response.json();
                 document.getElementById("morseOutput").textContent = data.morseTranslate;
-            } catch (error) {
-                console.error("Error:", error);
+                audioTranslation = data.morseTranslate;
+            } catch (err) {
+                console.error(err);
                 document.getElementById("morseOutput").textContent = "Error contacting backend.";
             }
         }
 
+        // Play current morse audio
         async function triggerListen() {
-            const url = `http://localhost:8000/listen?text=${encodeURIComponent(currentTranslation)}`;
             try {
+                const url = `http://localhost:8000/listen?text=${encodeURIComponent(currentTranslation)}`;
                 const response = await fetch(url);
-                if(!response.ok){
-                    throw new Error(`Http error! status: ${response.status}`);
-                }
-                const data = await response.blob();
-                const audioUrl = URL.createObjectURL(data);
-                const audio  = new Audio(audioUrl);
-                audio.volume = parseFloat(document.getElementById("volumeSlider").value);
-                audio.play().catch(err => console.error("Audio play failed:", err));
-            }catch{
-                console.error('Error playing audio:', error);
+                if (!response.ok) throw new Error("Audio fetch failed");
+                const blob = await response.blob();
+                const audioUrl = URL.createObjectURL(blob);
+                const audio = new Audio(audioUrl);
+                audio.volume = parseFloat(volumeSlider.value);
+                audio.play().catch(console.error);
+            } catch (err) {
+                console.error(err);
             }
         }
-        
-    </script>
-    
-    <button type="button" onclick="triggerListen()">Listen</button>
 
+        // Send recorded audio to backend
+        async function triggerAudio(formData) {
+            try {
+                const response = await fetch("http://127.0.0.1:8000/audio", {
+                    method: "POST",
+                    body: formData
+                });
+                const result = await response.json();
+                console.log("Server response", result);
+                document.getElementById("transcribedOutput").textContent = result.morse;
+                document.getElementById("caption").textContent = result.caption;
+                currentTranslation = result.morse;
+            } catch (err) {
+                console.error("Failed to connect to server:", err);
+            }
+        }
+
+        // Recording buttons and media recorder setup
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const playback = document.getElementById('playback');
+
+        startBtn.onclick = async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = e => {
+                    if (e.data.size > 0) audioChunks.push(e.data);
+                };
+
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    const audioURL = URL.createObjectURL(audioBlob);
+                    playback.src = audioURL;
+
+                    const formData = new FormData();
+                    formData.append("file", audioBlob, "recording.wav");
+                    triggerAudio(formData);
+                };
+
+                mediaRecorder.start();
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+            } catch (err) {
+                console.error("Recording failed:", err);
+                alert("Could not start recording.");
+            }
+        };
+
+        stopBtn.onclick = () => {
+            if (mediaRecorder && mediaRecorder.state === "recording") {
+                mediaRecorder.stop();
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+            }
+        };
+    </script>
 </body>
 </html>
+
+
