@@ -25,3 +25,6 @@ $ . path/to/venv/bin/activate
 ```
 
 Access the web app by going to http://127.0.0.1:8000/
+
+5. Proof of concept. 
+To view a demonstration of the website; https://youtu.be/NjCUHuslKQw. I am aware that there are problems pyaudio and the portaudio.h when installing the project dependencies.
